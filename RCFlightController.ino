@@ -1,7 +1,7 @@
 //Esp
 #include <Servo.h>
 
-#define MAX_F_ANGLE 25  //Maximum flaperon angle. Higher values are less stable but allow for more freedom of motion. Does NOT include flaps
+#define MAX_AILERON_ANGLE 25  //Maximum flaperon angle. Higher values are less stable but allow for more freedom of motion. Does NOT include flaps
 
 #define VRX_PIN A0
 #define VRY_PIN A1
@@ -38,9 +38,9 @@ void TestFlaperons(float ang) {
 
 void UpdateControls() {
   if (abs(analogRead(VRX_PIN) - 505) > 15) {
-    jX = constrain(analogRead(VRX_PIN) - 505, -400, 400);
-    f1.write(f1_a0 + jX / 400 * MAX_F_ANGLE - flap);
-    f2.write(f2_a0 + jX / 400 * MAX_F_ANGLE + flap);
+    jX = constrain(analogRead(VRX_PIN) - 505, -400, 400)/400.00 * MAX_AILERON_ANGLE;
+    f1.write(f1_a0 + jX - flap);
+    f2.write(f2_a0 + jX + flap);
   } else {
     if (jX != 0) {
       f1.write(f1_a0 - flap);
