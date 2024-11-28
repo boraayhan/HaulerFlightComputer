@@ -5,7 +5,8 @@
 
 #define VRX_PIN A0
 #define VRY_PIN A1
-#define JBUTTON_PIN 2
+#define F1_PIN 2
+#define F2_PIN 3
 
 double jX = 0.001;
 double jY = 0;
@@ -19,9 +20,8 @@ float f1_a0 = 88;  //Calibrated zero-level for flaperons, initially manual but m
 float f2_a0 = 111;
 void setup() {
   Serial.begin(9600);
-  f1.attach(8);
-  f2.attach(9);
-  pinMode(JBUTTON_PIN, INPUT);
+  f1.attach(F1_PIN);
+  f2.attach(F2_PIN);
 }
 
 void loop() {
