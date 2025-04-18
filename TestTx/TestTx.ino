@@ -4,9 +4,14 @@
 #define CE_PIN 7
 #define CSN_PIN 8
 
+const float FLAP_ANGLE_MAX = 0;
+const float FLAP_ANGLE_MIN = -40;
+
 RF24 radio(CE_PIN, CSN_PIN);
 
 uint8_t address[][6] = { "1Node", "2Node" };
+
+bool flapDown = false;
 
 struct Payload {
   int id;
@@ -15,7 +20,7 @@ struct Payload {
 };
 
 // Array of recognized command strings
-const char* commands[] = { "c0", "c1", "c2", "TEST1", "TEST2", "TEST3" };
+const char* commands[] = { "C0", "C1", "", "FLAP", "TEST" };
 
 void setup() {
   Serial.begin(115200);
@@ -40,7 +45,7 @@ void SetupRadio() {
 }
 
 bool TransmitPayload(int id, float p1, float p2) {
-  Payload p = {id, p1, p2}; 
+  Payload p = { id, p1, p2 };
   bool report = radio.write(&p, sizeof(p));  // transmit & save the report
   if (report) {
     //Succesful transmission
@@ -51,6 +56,32 @@ bool TransmitPayload(int id, float p1, float p2) {
   delay(20);
 }
 
+bool GetJoystickFromSerial() {
+  while (Serial.available() > 2) {
+    float inp = Serial.read();
+    if (inp == 'J') { //Joystick Input for Aileron
+      float jX = Serial.read();
+      float jY = Serial.read();
+      return TransmitPayload(0, jX, jY);;
+    }
+    if (inp == 'F') { //Flap Delta
+      jY = Serial.read();
+      jX = Serial.read();
+      return true;
+    }
+    if (inp == 'R') {
+      jY = Serial.read();
+      jX = Serial.read();
+      return true;
+    }
+    if (inp == 'R') {
+      jY = Serial.read();
+      jX = Serial.read();
+      return true;
+    }
+    return false;
+  }
+}
 int GetCommandFromSerial() {
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
@@ -62,21 +93,26 @@ int GetCommandFromSerial() {
         return i;
       }
     }
-
     Serial.println("Unknown command: " + input);
   }
   return -1;
 }
 
 void EvaluateInput() {
-int c = GetCommandFromSerial();
+  int c = GetCommandFromSerial();
   if (c != -1) {
     Serial.println("Valid");
-    switch(c) {
+    switch (c) {
+      case 1:
+      if(flapDown)
+        TransmitPayload(3, FLAP_ANGLE_MIN , 0);
+      else
+        TransmitPayload(3, FLAP_ANGLE_MIN , 0);
+      flapDown = !flapDown;
       case 4:
         TransmitPayload(4, 0, 0);
-        Serial.println("Testing...");
-      break;
+        Serial.println("Testing Surfaces...");
+        break;
     }
   }
 }
