@@ -1,5 +1,4 @@
 #include <SPI.h>
-#include "printf.h"
 #include "RF24.h"
 
 #define CE_PIN 7
@@ -7,7 +6,16 @@
 
 RF24 radio(CE_PIN, CSN_PIN);
 
-float payload[3] = {0, 0, 0};
+uint8_t address[][6] = { "1Node", "2Node" };
+
+struct Payload {
+  int id;
+  float p1;
+  float p2;
+};
+
+// Array of recognized command strings
+const char* commands[] = { "TEST", "ARM", "DISARM", "PING", "RESET" };
 
 void setup() {
   Serial.begin(115200);
@@ -16,7 +24,10 @@ void setup() {
 }
 
 void loop() {
-  TransmitPayload();
+  int commandID = GetCommandFromSerial();
+  if (commandID != -1) {
+    TransmitPayload(commandID, millis(), 1);
+  }
 }
 
 void SetupRadio() {
@@ -25,15 +36,15 @@ void SetupRadio() {
     while (1) {}
   }
   radio.setPALevel(RF24_PA_LOW);
-  radio.setPayloadSize(sizeof(payload));
-  radio.openWritingPipe("1Node");
-  radio.openReadingPipe(1, "2Node");
+  radio.setPayloadSize(sizeof(Payload));
+  radio.openWritingPipe(address[0][6]);
+  radio.openReadingPipe(1, address[1][6]);
   radio.stopListening();
 }
 
-bool TransmitPayload() {
-  payload[2] = millis() / 1000;
-  bool report = radio.write(payload, sizeof(payload));  // transmit & save the report
+bool TransmitPayload(int id, float p1, float p2) {
+  Payload p = {id, p1, p2}; 
+  bool report = radio.write(&p, sizeof(p));  // transmit & save the report
   if (report) {
     //Succesful transmission
   } else {
@@ -41,4 +52,21 @@ bool TransmitPayload() {
     return false;
   }
   delay(20);
+}
+
+int GetCommandFromSerial() {
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    input.toUpperCase();
+
+    for (int i = 0; i < (sizeof(commands) / sizeof(commands[0])); i++) {
+      if (input == commands[i]) {
+        return i;
+      }
+    }
+
+    Serial.println("Unknown command: " + input);
+  }
+  return -1;
 }

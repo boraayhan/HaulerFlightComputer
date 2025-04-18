@@ -1,15 +1,18 @@
 // LIBRARIES
 #include <Wire.h>
 #include <Servo.h>
-#include <RF24.h>
+#include <SPI.h>
+#include "RF24.h"
 
+#define RADIO_PIN_CE 7
+#define RADIO_PIN_CSN 8
 // CONSTANTS
 
-const float AILERON_ANGLE_MIN = -50;
-const float AILERON_ANGLE_MAX = 50;
+const float AILERON_ANGLE_MIN = -40;
+const float AILERON_ANGLE_MAX = 40;
 
-const float FLAP_ANGLE_MAX = 50;
-const float FLAP_ANGLE_MIN = -50;
+const float FLAP_ANGLE_MAX = 0;
+const float FLAP_ANGLE_MIN = -40;
 
 enum SurfaceID {
   AILERON_LEFT,
@@ -17,6 +20,15 @@ enum SurfaceID {
   FLAP_LEFT,
   FLAP_RIGHT,
   _num
+};
+
+uint8_t address[][6] = { "1Node", "2Node" };
+
+
+struct Payload {
+  int id;
+  float p1;
+  float p2;
 };
 
 struct ControlSurface {
@@ -30,7 +42,6 @@ struct ControlSurface {
     servo.attach(pin);
     move(0);
     delay(1000);
-    test();
   }
 
   void test() {
@@ -58,7 +69,10 @@ struct ControlSurface {
   }
 };
 
-// VARIABLES
+// VARIABLES AND OBJECTS
+
+RF24 radio(RADIO_PIN_CE, RADIO_PIN_CSN);
+
 ControlSurface surfaces[_num] = {
   { Servo(), 2, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, 1 },  // AILERON_LEFT
   //{Servo(), 3, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, 1 },  // AILERON_RIGHT
@@ -66,6 +80,9 @@ ControlSurface surfaces[_num] = {
   //{Servo(), 5, 90, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, 1 }         // FLAP_RIGHT
 };
 
+float flap = 0;
+
+// FUNCTIONS
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -74,13 +91,66 @@ void setup() {
 }
 
 void loop() {
-}
-
-void ProcessInputs() {
+  ReceiveRadio();
 }
 
 void InitializeSystems() {
+  SetupRadio();
   for (ControlSurface& s : surfaces) {
     s.init();
   }
+}
+
+void SetupRadio() {
+  if (!radio.begin()) {
+    Serial.println(F("Error: Radio hardware failure!"));
+    while (1) {}
+  }
+  radio.setPALevel(RF24_PA_LOW);
+  radio.setPayloadSize(sizeof(Payload));  //FIXME: set proper size for array
+  radio.openWritingPipe(address[1][6]);
+  radio.openReadingPipe(1, address[0][6]);
+  radio.startListening();
+}
+
+void ReceiveRadio() {
+  uint8_t pipe;
+  if (radio.available(&pipe)) {
+    uint8_t bytes = radio.getPayloadSize();
+    Payload payload;
+    radio.read(&payload, bytes);  // Payload is stored into the payload variable
+    float p1 = payload.p1;
+    float p2 = payload.p2;
+    switch (payload.id) {
+      case 0:  //Joystick input
+        processJoystick(p1, p2);
+        break;
+      case 1:  // set flap
+        flap = p1;
+        surfaces[FLAP_LEFT].move(flap);
+        surfaces[FLAP_RIGHT].move(flap);
+        break;
+      case 2:  // delta flap
+        //flaps.move(flap + p1);
+        flap += p1;
+        surfaces[FLAP_LEFT].move(flap);
+        surfaces[FLAP_RIGHT].move(flap);
+        break;
+      case 3:  // thrust set
+               // engine1.write(payload.p1);
+               // engine2.write(payload.p2);
+        break;
+      case 4:  // test surfaces
+        for (ControlSurface& s : surfaces) {
+          s.test();
+          delay(500);
+        }
+        break;
+    }
+  }
+}
+
+void processJoystick(float rX, float rY)
+{
+
 }
