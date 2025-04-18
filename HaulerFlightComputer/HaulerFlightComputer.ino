@@ -143,6 +143,7 @@ void ReceiveRadio() {
       case 4:  // test surfaces
         for (ControlSurface& s : surfaces) {
           s.test();
+          Serial.println("Testing surface");
           delay(500);
         }
         break;

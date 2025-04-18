@@ -15,7 +15,7 @@ struct Payload {
 };
 
 // Array of recognized command strings
-const char* commands[] = { "c0", "c1", "c2", "TEST1", "TEST2", "TEST3" };
+const char* commands[] = { "C0", "C1", "C2", "C3", "TEST",};
 
 void setup() {
   Serial.begin(115200);
