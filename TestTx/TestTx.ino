@@ -15,7 +15,7 @@ struct Payload {
 };
 
 // Array of recognized command strings
-const char* commands[] = { "TEST", "ARM", "DISARM", "PING", "RESET" };
+const char* commands[] = { "c0", "c1", "c2", "TEST1", "TEST2", "TEST3" };
 
 void setup() {
   Serial.begin(115200);
@@ -24,10 +24,7 @@ void setup() {
 }
 
 void loop() {
-  int commandID = GetCommandFromSerial();
-  if (commandID != -1) {
-    TransmitPayload(commandID, millis(), 1);
-  }
+  EvaluateInput();
 }
 
 void SetupRadio() {
@@ -69,4 +66,17 @@ int GetCommandFromSerial() {
     Serial.println("Unknown command: " + input);
   }
   return -1;
+}
+
+void EvaluateInput() {
+int c = GetCommandFromSerial();
+  if (c != -1) {
+    Serial.println("Valid");
+    switch(c) {
+      case 4:
+        TransmitPayload(4, 0, 0);
+        Serial.println("Testing...");
+      break;
+    }
+  }
 }
