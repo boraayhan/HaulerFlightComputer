@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <Servo.h>
 #include <SPI.h>
+#include <stdint.h>
 #include "RF24.h"
 
 #define RADIO_PIN_CE 7
@@ -14,7 +15,7 @@ const float AILERON_ANGLE_MAX = 40;
 const float FLAP_ANGLE_MAX = 0;
 const float FLAP_ANGLE_MIN = -40;
 
-enum SurfaceID {
+enum SurfaceID {W
   AILERON_LEFT,
   AILERON_RIGHT,
   FLAP_LEFT,
@@ -26,7 +27,7 @@ uint8_t address[][6] = { "1Node", "2Node" };
 
 
 struct Payload {
-  int id;
+  int32_t id;
   float p1;
   float p2;
 };
@@ -64,7 +65,6 @@ struct ControlSurface {
 
   void move(float angle) {  //Moves to specified angle, accounting for zero-level
     float target = constrain(angle, min, max) * dir;
-    Serial.println(target);
     servo.write(zero + target);
   }
 };
@@ -82,10 +82,12 @@ ControlSurface surfaces[_num] = {
 
 float flap = 0;
 
+Payload payload;
+
 // FUNCTIONS
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
   InitializeSystems();
   Serial.println("Initialized!");
 }
@@ -93,7 +95,6 @@ void setup() {
 void loop() {
   ReceiveRadio();
 }
-
 void InitializeSystems() {
   SetupRadio();
   for (ControlSurface& s : surfaces) {
@@ -107,34 +108,32 @@ void SetupRadio() {
     while (1) {}
   }
   radio.setPALevel(RF24_PA_LOW);
-  radio.setPayloadSize(sizeof(Payload));  //FIXME: set proper size for array
-  radio.openWritingPipe(address[1][6]);
-  radio.openReadingPipe(1, address[0][6]);
+  radio.setPayloadSize(sizeof(Payload));
+  radio.openReadingPipe(1, address[0]);
   radio.startListening();
 }
 
 void ReceiveRadio() {
   uint8_t pipe;
   if (radio.available(&pipe)) {
-    uint8_t bytes = radio.getPayloadSize();
     Payload payload;
-    radio.read(&payload, bytes);  // Payload is stored into the payload variable
+    radio.read(&payload, sizeof(Payload));  // Receive the payload
     float p1 = payload.p1;
     float p2 = payload.p2;
     switch (payload.id) {
       case 0:  //Joystick input
-        processJoystick(p1, p2);
+      processJoystick(p1, p2);
         break;
       case 1:  // set flap
         flap = p1;
         surfaces[FLAP_LEFT].move(flap);
-        surfaces[FLAP_RIGHT].move(flap);
+        //surfaces[FLAP_RIGHT].move(flap);
         break;
       case 2:  // delta flap
         //flaps.move(flap + p1);
         flap += p1;
         surfaces[FLAP_LEFT].move(flap);
-        surfaces[FLAP_RIGHT].move(flap);
+        //surfaces[FLAP_RIGHT].move(flap);
         break;
       case 3:  // thrust set
                // engine1.write(payload.p1);
@@ -151,7 +150,7 @@ void ReceiveRadio() {
   }
 }
 
-void processJoystick(float rX, float rY)
-{
-
+void processJoystick(float rX, float rY) {
+  surfaces[AILERON_LEFT].move(rX * (AILERON_ANGLE_MAX - AILERON_ANGLE_MIN));
+  //Serial.println(rX*(AILERON_ANGLE_MAX - AILERON_ANGLE_MIN));
 }
