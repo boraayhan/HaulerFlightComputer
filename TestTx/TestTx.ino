@@ -1,122 +1,70 @@
 #include <SPI.h>
 #include "RF24.h"
+#include <stdint.h>
 
-#define CE_PIN 7
-#define CSN_PIN 8
+// ------------------------
+// NRF24L01 Pin Definitions
+#define RADIO_CE_PIN 7
+#define RADIO_CSN_PIN 8
 
-const float FLAP_ANGLE_MAX = 0;
-const float FLAP_ANGLE_MIN = -40;
-
-RF24 radio(CE_PIN, CSN_PIN);
-
-uint8_t address[][6] = { "1Node", "2Node" };
-
-bool flapDown = false;
-
+// ------------------------
+// Payload Struct - must match Python and RX
 struct Payload {
-  int id;
-  float p1;
-  float p2;
+  int32_t id;  // 4 bytes
+  float p1;    // 4 bytes
+  float p2;    // 4 bytes
 };
 
-// Array of recognized command strings
-<<<<<<< HEAD
-const char* commands[] = { "C0", "C1", "", "FLAP", "TEST" };
-=======
-const char* commands[] = { "C0", "C1", "C2", "C3", "TEST",};
->>>>>>> 1b8b72f7016d3b8e6de53f7a97572b6daadad7d1
+// ------------------------
+// RF24 Setup
+RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN);
+uint8_t addresses[][6] = { "1Node", "2Node" };  // Must match RX
+
+// ------------------------
+// Global Variables
+Payload receivedData;
 
 void setup() {
-  Serial.begin(115200);
-  while (!Serial) {}
-  SetupRadio();
+  Serial.begin(115200);             // Match Python baud
+  while (!Serial) {}                // Wait for USB
+
+  if (!radio.begin()) {
+    Serial.println(F("RF24 initialization failed!"));
+    while (1);
+  }
+
+  radio.setPayloadSize(sizeof(Payload));  // 12 bytes
+  radio.setPALevel(RF24_PA_LOW);          // Safe power level
+  radio.openWritingPipe(addresses[0]);    // TX pipe
+  radio.stopListening();                  // We're transmitting
+
+  Serial.println(F("TX Arduino ready."));
 }
 
 void loop() {
-  EvaluateInput();
-}
+  if (Serial.available() >= sizeof(Payload)) {
+    Serial.readBytes((char*)&receivedData, sizeof(Payload));
 
-void SetupRadio() {
-  if (!radio.begin()) {
-    Serial.println(F("Error: Radio hardware failure!"));
-    while (1) {}
-  }
-  radio.setPALevel(RF24_PA_LOW);
-  radio.setPayloadSize(sizeof(Payload));
-  radio.openWritingPipe(address[0][6]);
-  radio.openReadingPipe(1, address[1][6]);
-  radio.stopListening();
-}
+    // Print received from Python
+    Serial.print(F("From Serial → ID: "));
+    Serial.print(receivedData.id);
+    Serial.print(F(" | P1: "));
+    Serial.print(receivedData.p1, 6);
+    Serial.print(F(" | P2: "));
+    Serial.println(receivedData.p2, 6);
 
-bool TransmitPayload(int id, float p1, float p2) {
-  Payload p = { id, p1, p2 };
-  bool report = radio.write(&p, sizeof(p));  // transmit & save the report
-  if (report) {
-    //Succesful transmission
-  } else {
-    Serial.println(F("Transmission failed or timed out"));
-    return false;
-  }
-  delay(20);
-}
+    // Send over RF
+    bool success = radio.write(&receivedData, sizeof(Payload));
 
-bool GetJoystickFromSerial() {
-  while (Serial.available() > 2) {
-    float inp = Serial.read();
-    if (inp == 'J') { //Joystick Input for Aileron
-      float jX = Serial.read();
-      float jY = Serial.read();
-      return TransmitPayload(0, jX, jY);;
+    if (success) {
+      Serial.println(F("Payload sent via RF24."));
+    } else {
+      Serial.println(F("⚠️ RF24 transmission failed."));
     }
-    if (inp == 'F') { //Flap Delta
-      jY = Serial.read();
-      jX = Serial.read();
-      return true;
-    }
-    if (inp == 'R') {
-      jY = Serial.read();
-      jX = Serial.read();
-      return true;
-    }
-    if (inp == 'R') {
-      jY = Serial.read();
-      jX = Serial.read();
-      return true;
-    }
-    return false;
+
+    delay(20);  // Short delay to prevent radio spamming
   }
 }
-int GetCommandFromSerial() {
-  if (Serial.available()) {
-    String input = Serial.readStringUntil('\n');
-    input.trim();
-    input.toUpperCase();
 
-    for (int i = 0; i < (sizeof(commands) / sizeof(commands[0])); i++) {
-      if (input == commands[i]) {
-        return i;
-      }
-    }
-    Serial.println("Unknown command: " + input);
-  }
-  return -1;
-}
 
-void EvaluateInput() {
-  int c = GetCommandFromSerial();
-  if (c != -1) {
-    Serial.println("Valid");
-    switch (c) {
-      case 1:
-      if(flapDown)
-        TransmitPayload(3, FLAP_ANGLE_MIN , 0);
-      else
-        TransmitPayload(3, FLAP_ANGLE_MIN , 0);
-      flapDown = !flapDown;
-      case 4:
-        TransmitPayload(4, 0, 0);
-        Serial.println("Testing Surfaces...");
-        break;
-    }
-  }
-}
+
