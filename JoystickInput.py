@@ -1,40 +1,41 @@
+import struct
+import serial
+import time
 import pygame
 
+# Setup serial port
+ser = serial.Serial('COM7', 115200, timeout=1)  # Change COM7 if needed
+time.sleep(2)  # Give Arduino time to reset
+
+# Setup joystick
 pygame.init()
 pygame.joystick.init()
 
-jX = 0
-jY = 0
-
 if pygame.joystick.get_count() == 0:
-    print("No joystick detected.")
+    print("No joystick found.")
     exit()
 
 joystick = pygame.joystick.Joystick(0)
 joystick.init()
 
-print(f"Joystick detected: {joystick.get_name()}")
+print("Joystick:", joystick.get_name())
+
 try:
     while True:
         pygame.event.pump()
+        roll = joystick.get_axis(0)
+        pitch = joystick.get_axis(1)
 
-        # Axes
-        for i in range(joystick.get_numaxes()):
-            axis = joystick.get_axis(i)
-            print(f"Axis {i}: {axis:.3f}")
+        payload = struct.pack('<iff', 0, roll, pitch)  # ID=0
+        ser.write(payload)
 
-        # Buttons
-        for i in range(joystick.get_numbuttons()):
-            button = joystick.get_button(i)
-            print(f"Button {i}: {'Pressed' if button else 'Released'}")
-
-        # Hats (D-pad)
-        for i in range(joystick.get_numhats()):
-            hat = joystick.get_hat(i)
-            print(f"Hat {i}: {hat}")
-
-        print("----------")
-        pygame.time.wait(200)
+        print(f"Sent: ID=0, roll={roll:.2f}, pitch={pitch:.2f}")
+        time.sleep(0.05)
 
 except KeyboardInterrupt:
     print("Exiting...")
+    pygame.quit()
+    ser.close()
+
+
+
