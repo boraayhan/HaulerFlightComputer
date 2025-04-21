@@ -8,18 +8,21 @@ ser = serial.Serial('COM7', 115200, timeout=1)
 pygame.init()
 pygame.joystick.init()
 
+pb2 = False
+pb3 = False
+pb14 = False
+
 if pygame.joystick.get_count() == 0:
     print("No joystick found.")
     exit()
+
 def transmit(id, p1, p2):
-        payload = struct.pack('<iff', 0, roll, pitch)
-        ser.write(payload)-----
-        print(f"Sent: ID=0, roll={roll:.2f}, pitch={pitch:.2f}")
-        time.sleep(0.05)
+    payload = struct.pack('<iff', id, p1, p2)
+    ser.write(payload)
+    print(f"Tx ID: {id}, p1: {p1:.2f}, p2: {p2:.2f}")
 
 joystick = pygame.joystick.Joystick(0)
 joystick.init()
-
 print("Joystick:", joystick.get_name())
 
 try:
@@ -30,16 +33,24 @@ try:
         roll = joystick.get_axis(0)
         pitch = joystick.get_axis(1)
         transmit(0, roll, pitch)
-        
-        # Set flap
-        if joystick.get_button(0):
-            transmit(1, 0, 0)
-            
+
+        b2 = joystick.get_button(2)
+        b3 = joystick.get_button(3)
+        b14 = joystick.get_button(14)
+
         # Delta flap
-        if joystick.get_button(1):
-            transmit(2, 15, 0)
-        if joystick.get_button(1):
-            transmit(2, -15, 0)
+        if b2 and not pb2:
+            transmit(2, 1, 0)
+        if b3 and not pb3:
+            transmit(2, -1, 0)
             
-except SyntaxError
-    print("")
+        # Test surfaces
+        if b14 and not pb14:
+            transmit(4, 0, 0)
+        
+        pb2 = b2
+        pb3 = b3
+        pb14 = b14
+
+except KeyboardInterrupt:
+    print("Exiting...")
