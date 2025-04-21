@@ -15,15 +15,15 @@ const float AILERON_ANGLE_MAX = 40;
 const float FLAP_ANGLE_MAX = 0;
 const float FLAP_ANGLE_MIN = -40;
 
-enum SurfaceID {
-  AILERON_LEFT,
-  AILERON_RIGHT,
-  FLAP_LEFT,
-  FLAP_RIGHT,
-  _num
-};
-
 uint8_t address[][6] = { "1Node", "2Node" };
+
+enum ControlSurfaces {
+    AILERON_LEFT = 0,
+    AILERON_RIGHT,
+    FLAP_LEFT,
+    FLAP_RIGHT,
+    _num
+};
 
 struct Payload {
   int32_t id;
@@ -64,6 +64,7 @@ struct ControlSurface {
 
   void move(float angle) {  //Moves to specified angle, accounting for zero-level
     float target = constrain(angle, min, max) * dir;
+    Serial.println(target);
     servo.write(zero + target);
   }
 };
@@ -73,9 +74,9 @@ RF24 radio(RADIO_PIN_CE, RADIO_PIN_CSN);
 
 ControlSurface surfaces[_num] = {
   { Servo(), 2, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, -1 },  // AILERON_LEFT
-  //{Servo(), 3, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, 1 },  // AILERON_RIGHT
+  {Servo(), 3, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, 1 },  // AILERON_RIGHT
   { Servo(), 4, 80, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, -1 },  // FLAP_LEFT
-  //{Servo(), 5, 90, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, 1 }         // FLAP_RIGHT
+  {Servo(), 5, 90, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, 1 }         // FLAP_RIGHT
 };
 
 float flap = 0;
@@ -120,12 +121,9 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
       case 0:  //Joystick input
         MoveSurfacesWithJoystick(p1, p2);
         break;
-      case 1:  // set flap
-        flap = p1;
-        MoveFlaps();
-        break;
       case 2:  // delta flap
-        flap += p1;
+        flap += p1*abs(FLAP_ANGLE_MIN)/3;
+        flap = constrain(flap, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX);
         MoveFlaps();
         break;
       case 3:  // thrust set
@@ -145,6 +143,7 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
 
 void MoveSurfacesWithJoystick(float jX, float jY) {  // Translates payload data to aileron and elevator motion
   float pAileron = jX * (AILERON_ANGLE_MAX - AILERON_ANGLE_MIN);
+  Serial.println(pAileron);
   surfaces[AILERON_LEFT].move(pAileron);
   surfaces[AILERON_RIGHT].move(pAileron);
 }
