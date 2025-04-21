@@ -16,10 +16,11 @@ if pygame.joystick.get_count() == 0:
     print("No joystick found.")
     exit()
 
-def transmit(id, p1, p2):
+def transmit(id: int, p1: float, p2: float):
     payload = struct.pack('<iff', id, p1, p2)
     ser.write(payload)
     print(f"Tx ID: {id}, p1: {p1:.2f}, p2: {p2:.2f}")
+    time.sleep(0.05)
 
 joystick = pygame.joystick.Joystick(0)
 joystick.init()

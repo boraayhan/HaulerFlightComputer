@@ -37,6 +37,5 @@ void loop() {
     if (!radio.write(&receivedData, sizeof(Payload))) {
       Serial.println(F("RF24 transmission fail"));
     }
-    delay(20);
   }
 }
