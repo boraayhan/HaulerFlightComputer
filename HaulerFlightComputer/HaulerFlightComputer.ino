@@ -18,11 +18,11 @@ const float FLAP_ANGLE_MIN = -40;
 uint8_t address[][6] = { "1Node", "2Node" };
 
 enum ControlSurfaces {
-    AILERON_LEFT = 0,
-    AILERON_RIGHT,
-    FLAP_LEFT,
-    FLAP_RIGHT,
-    _num
+  AILERON_LEFT = 0,
+  AILERON_RIGHT,
+  FLAP_LEFT,
+  FLAP_RIGHT,
+  _num
 };
 
 struct Payload {
@@ -74,10 +74,12 @@ RF24 radio(RADIO_PIN_CE, RADIO_PIN_CSN);
 
 ControlSurface surfaces[_num] = {
   { Servo(), 2, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, -1 },  // AILERON_LEFT
-  {Servo(), 3, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, 1 },  // AILERON_RIGHT
-  { Servo(), 4, 80, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, -1 },  // FLAP_LEFT
-  {Servo(), 5, 90, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, 1 }         // FLAP_RIGHT
+  { Servo(), 3, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, 1 },   // AILERON_RIGHT
+  { Servo(), 4, 80, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, -1 },        // FLAP_LEFT
+  { Servo(), 5, 90, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, 1 }          // FLAP_RIGHT
 };
+
+Servo propeller;  // This is NOT a servo lmao
 
 float flap = 0;
 Payload payload;
@@ -122,13 +124,13 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
         MoveSurfacesWithJoystick(p1, p2);
         break;
       case 2:  // delta flap
-        flap += p1*abs(FLAP_ANGLE_MIN)/3;
+        flap += p1 * abs(FLAP_ANGLE_MIN) / 3;
         flap = constrain(flap, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX);
         MoveFlaps();
         break;
-      case 3:  // thrust set
-               // engine1.write(payload.p1);
-               // engine2.write(payload.p2);
+      case 3: // Throttle
+        float speed = map(p1, 0, 1, 0, 180)
+        SetThrottle(speed);
         break;
       case 4:  // test surfaces
         for (ControlSurface& s : surfaces) {
@@ -148,7 +150,11 @@ void MoveSurfacesWithJoystick(float jX, float jY) {  // Translates payload data 
   surfaces[AILERON_RIGHT].move(pAileron);
 }
 
-void MoveFlaps() {  // Translates payload data to aileron and elevator motion
+void MoveFlaps() {  // Updates flap level
   surfaces[FLAP_LEFT].move(flap);
   surfaces[FLAP_RIGHT].move(flap);
+}
+
+void SetThrottle(float speed) {
+  propeller.write(speed);
 }
