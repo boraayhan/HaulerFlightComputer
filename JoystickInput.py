@@ -34,7 +34,13 @@ try:
         roll = joystick.get_axis(0)
         pitch = joystick.get_axis(1)
         transmit(0, roll, pitch)
-
+        
+        # Throttle
+        throttle = (-joystick.get_axis(2)+1)/2
+        transmit(4, throttle, 0)
+        
+        
+        # Button Inputs
         b2 = joystick.get_button(2)
         b3 = joystick.get_button(3)
         b14 = joystick.get_button(14)
