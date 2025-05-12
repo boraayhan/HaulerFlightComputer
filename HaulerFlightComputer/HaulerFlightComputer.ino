@@ -82,6 +82,7 @@ ControlSurface surfaces[_num] = {
 Servo propeller;  // This is NOT a servo lmao
 
 float flap = 0;
+bool active = false;
 Payload payload;
 
 // FUNCTIONS
@@ -128,9 +129,11 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
         flap = constrain(flap, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX);
         MoveFlaps();
         break;
-      case 3: // Throttle
-        float speed = map(p1, 0, 1, 0, 180)
-        SetThrottle(speed);
+      case 3:  // Throttle
+        if (active) {
+          float speed = map(p1, 0, 1, 0, 180);
+          SetThrottle(speed);
+        }
         break;
       case 4:  // test surfaces
         for (ControlSurface& s : surfaces) {
@@ -138,6 +141,9 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
           Serial.println("Testing surface");
           delay(500);
         }
+        break;
+      case 5:  // Activate engine
+        active = true;
         break;
     }
   }
