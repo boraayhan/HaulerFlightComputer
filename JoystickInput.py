@@ -11,6 +11,8 @@ pygame.joystick.init()
 pb2 = False
 pb3 = False
 pb14 = False
+pb15= False
+
 
 if pygame.joystick.get_count() == 0:
     print("No joystick found.")
@@ -37,13 +39,14 @@ try:
         
         # Throttle
         throttle = (-joystick.get_axis(2)+1)/2
-        transmit(4, throttle, 0)
+        transmit(3, throttle, 0)
         
         
         # Button Inputs
         b2 = joystick.get_button(2)
         b3 = joystick.get_button(3)
         b14 = joystick.get_button(14)
+        b15 = joystick.get_button(15)
 
         # Delta flap
         if b2 and not pb2:
@@ -54,10 +57,14 @@ try:
         # Test surfaces
         if b14 and not pb14:
             transmit(4, 0, 0)
+            
+        if b15 and not pb15:
+            transmit(5, 0, 0)
         
         pb2 = b2
         pb3 = b3
         pb14 = b14
+        pb15 = b15
 
-except KeyboardInterrupt:
-    print("Exiting...")
+except Exception as err:
+    print(f"Exiting program: {err}")
