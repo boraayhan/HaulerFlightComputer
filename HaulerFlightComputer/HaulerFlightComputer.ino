@@ -9,7 +9,7 @@
 #define RADIO_PIN_CSN 8
 
 // CONSTANTS
-const float FLAPERON_RATIO_CONSTANT = 0;
+const float FLAPERON_RATIO_CONSTANT = 0; // 0 for flaperon mode off, 0.3 recommended  
 
 const float AILERON_POS_MIN = -40;
 const float AILERON_POS_MAX = 40;
