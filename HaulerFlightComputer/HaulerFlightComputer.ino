@@ -9,17 +9,16 @@
 #define RADIO_PIN_CSN 8
 
 // CONSTANTS
-const int FLAPERON_MODE = 1;  // 0 or 1, for false or true respectively
-const float FLAPERON_RATIO_CONSTANT = 0.3;
+const float FLAPERON_RATIO_CONSTANT = 0;
 
-const float AILERON_ANGLE_MIN = -40;
-const float AILERON_ANGLE_MAX = 40;
+const float AILERON_POS_MIN = -40;
+const float AILERON_POS_MAX = 40;
 
-const float FLAP_ANGLE_MAX = 0;
-const float FLAP_ANGLE_MIN = -40;
+const float FLAP_POS_MAX = 0;
+const float FLAP_POS_MIN = -40;
 
-const float ELEVATOR_ANGLE_MIN = -40;
-const float ELEVATOR_ANGLE_MAX = 40;
+const float ELEVATOR_POS_MIN = -40;
+const float ELEVATOR_POS_MAX = 40;
 
 float flap = 0;
 
@@ -30,8 +29,7 @@ enum ControlSurfaces {
   AILERON_RIGHT,
   FLAP_LEFT,
   FLAP_RIGHT,
-  ELEVATOR_LEFT,
-  ELEVATOR_RIGHT,
+  ELEVATOR,
   _num
 };
 
@@ -73,7 +71,7 @@ struct ControlSurface {
   }
 
   void move(float angle) {                                                                               //Moves to specified angle, accounting for zero-level
-    float target = constrain((angle + flap * FLAPERON_MODE * FLAPERON_RATIO_CONSTANT), min, max) * dir;  //TODO: Verify
+    float target = constrain((angle + flap * FLAPERON_RATIO_CONSTANT), min, max) * dir;  //TODO: Verify
     Serial.println(target);
     servo.write(zero + target);
   }
@@ -86,12 +84,11 @@ Servo propeller;  // This is NOT a servo lmao
 bool active = false;
 
 ControlSurface surfaces[_num] = {
-  { Servo(), 2, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, -1 },    // AILERON_LEFT
-  { Servo(), 3, 90, AILERON_ANGLE_MIN, AILERON_ANGLE_MAX, 1 },     // AILERON_RIGHT
-  { Servo(), 4, 80, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, -1 },          // FLAP_LEFT
-  { Servo(), 5, 90, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX, 1 },           // FLAP_RIGHT
-  { Servo(), 6, 90, ELEVATOR_ANGLE_MIN, ELEVATOR_ANGLE_MAX, -1 },  // ELEVATOR_LEFT
-  { Servo(), 7, 90, ELEVATOR_ANGLE_MIN, ELEVATOR_ANGLE_MAX, 1 }    // ELEVATOR_RIGHT
+  { Servo(), 2, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },    // AILERON_LEFT
+  { Servo(), 3, 90, AILERON_POS_MIN, AILERON_POS_MAX, 1 },     // AILERON_RIGHT
+  { Servo(), 4, 80, FLAP_POS_MIN, FLAP_POS_MAX, -1 },          // FLAP_LEFT
+  { Servo(), 5, 90, FLAP_POS_MIN, FLAP_POS_MAX, 1 },           // FLAP_RIGHT
+  { Servo(), 6, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, 1 },  // ELEVATOR_LEFT
 };
 
 // FUNCTIONS
@@ -137,8 +134,8 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
         MoveSurfacesWithJoystick(p1, p2);
         break;
       case 2:  // delta flap
-        flap += p1 * abs(FLAP_ANGLE_MIN) / 3;
-        flap = constrain(flap, FLAP_ANGLE_MIN, FLAP_ANGLE_MAX);
+        flap += p1 * abs(FLAP_POS_MIN) / 3;
+        flap = constrain(flap, FLAP_POS_MIN, FLAP_POS_MAX);
         MoveFlaps();
         break;
       case 3:  // Throttle
@@ -160,13 +157,12 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
 }
 
 void MoveSurfacesWithJoystick(float jX, float jY) {  // Translates payload data to aileron and elevator motion
-  float pAileron = jX * (AILERON_ANGLE_MAX - AILERON_ANGLE_MIN);
-  float PElevator = jY * (ELEVATOR_ANGLE_MAX - ELEVATOR_ANGLE_MIN);
-  Serial.println(pAileron);
+  float pAileron = jX * (AILERON_POS_MAX - AILERON_POS_MIN);
+  float pElevator = jY * (ELEVATOR_POS_MAX - ELEVATOR_POS_MIN);
+
   surfaces[AILERON_LEFT].move(pAileron);
   surfaces[AILERON_RIGHT].move(pAileron);
-  surfaces[AILERON_LEFT].move(pAileron);
-  surfaces[AILERON_RIGHT].move(pAileron);
+  surfaces[ELEVATOR].move(pElevator);
 }
 
 void MoveFlaps() {  // Updates flap level
