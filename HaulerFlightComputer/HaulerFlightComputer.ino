@@ -83,7 +83,7 @@ struct ControlSurface {
 RF24 radio(RADIO_PIN_CE, RADIO_PIN_CSN);
 Payload payload;
 Servo propeller;  // This is NOT a servo lmao
-bool active = false;
+bool active = true;
 
 ControlSurface surfaces[_num] = {
   { Servo(), 2, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },   // AILERON_LEFT
