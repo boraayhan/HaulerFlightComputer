@@ -11,7 +11,8 @@ pygame.joystick.init()
 pb2 = False
 pb3 = False
 pb14 = False
-pb15= False
+pb12= False
+pb13 = False
 
 
 if pygame.joystick.get_count() == 0:
@@ -46,7 +47,8 @@ try:
         b2 = joystick.get_button(2)
         b3 = joystick.get_button(3)
         b14 = joystick.get_button(14)
-        b15 = joystick.get_button(15)
+        b12 = joystick.get_button(12)
+        b13 = joystick.get_button(13)
 
         # Delta flap
         if b2 and not pb2:
@@ -57,14 +59,19 @@ try:
         # Test surfaces
         if b14 and not pb14:
             transmit(4, 0, 0)
-            
-        if b15 and not pb15:
-            transmit(5, 0, 0)
+        
+        #Engine activation
+        # if b12 and not pb12:
+            # transmit(5, 0, 0)
+        # Max throttle for init config  
+        if b13 and not pb13:
+            transmit(6, 0, 0)
         
         pb2 = b2
         pb3 = b3
         pb14 = b14
-        pb15 = b15
+        pb12 = b12
+        pb13 = b13
 
 except Exception as err:
     print(f"Exiting program: {err}")

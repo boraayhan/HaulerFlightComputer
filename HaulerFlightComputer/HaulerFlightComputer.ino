@@ -19,8 +19,8 @@ const float AILERON_POS_MAX = 40;
 const float FLAP_POS_MAX = 0;
 const float FLAP_POS_MIN = -40;
 
-const float ELEVATOR_POS_MIN = -40;
-const float ELEVATOR_POS_MAX = 40;
+const float ELEVATOR_POS_MIN = -60;
+const float ELEVATOR_POS_MAX = 60;
 
 float flap = 0;
 
@@ -86,11 +86,11 @@ Servo propeller;  // This is NOT a servo lmao
 bool active = true;
 
 ControlSurface surfaces[_num] = {
-  { Servo(), 2, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },   // AILERON_LEFT
-  { Servo(), 3, 90, AILERON_POS_MIN, AILERON_POS_MAX, 1 },    // AILERON_RIGHT
-  { Servo(), 4, 80, FLAP_POS_MIN, FLAP_POS_MAX, -1 },         // FLAP_LEFT
-  { Servo(), 5, 90, FLAP_POS_MIN, FLAP_POS_MAX, 1 },          // FLAP_RIGHT
-  { Servo(), 6, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, 1 },  // ELEVATOR_LEFT
+  { Servo(), 10, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },  // AILERON_LEFT
+  { Servo(), 11, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },   // AILERON_RIGHT
+  { Servo(), 12, 80, FLAP_POS_MIN, FLAP_POS_MAX, -1 },        // FLAP_LEFT
+  { Servo(), 13, 90, FLAP_POS_MIN, FLAP_POS_MAX, 1 },         // FLAP_RIGHT
+  { Servo(), 9, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_LEFT
 };
 
 // FUNCTIONS
@@ -119,7 +119,7 @@ void SetupRadio() {  // Initializes radio
     Serial.println(F("Error: Radio hardware failure!"));
     while (1) {}
   }
-  radio.setPALevel(RF24_PA_LOW); 
+  radio.setPALevel(RF24_PA_LOW);
   radio.setPayloadSize(sizeof(Payload));
   radio.openReadingPipe(1, address[0]);
   radio.startListening();
@@ -131,6 +131,8 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
     radio.read(&payload, sizeof(Payload));  // Receive the payload
     float p1 = payload.p1;
     float p2 = payload.p2;
+
+    //For some reason, switch() case: didn't work for id's higher than 3? I spent 20 mins trying to bugfix it to no avail. I am so confused, but this works (I guess). I'm starting to suspect that it's emi caused by solar flares or something funky like that
     if (payload.id == 0) {  // Joystick input
       MoveSurfacesWithJoystick(payload.p1, payload.p2);
     }
@@ -142,22 +144,22 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
     }
 
     if (payload.id == 3) {  // Throttle
-      float speed = payload.p1 * 180;
+      float speed = payload.p1 * 170;
       SetThrottle(speed);
       Serial.println(speed);
     }
 
     if (payload.id == 4) {  // test surfaces
-      for (ControlSurface& s : surfaces) {
-        s.test();
-        Serial.println("Testing surface");
-        delay(500);
-      }
+      TestSurfaces();
     }
 
     if (payload.id == 5) {  // Enable/Disable engine
-      active = !active;
-      Serial.println("active");
+      //active = !active;
+      //Serial.println("active");
+    }
+
+    if (payload.id == 6) {  // Enable/Disable engine
+      SetThrottle(180);
     }
   }
 }
@@ -181,5 +183,13 @@ void SetThrottle(float speed) {
     propeller.write(speed);
   } else {
     propeller.write(0);
+  }
+}
+
+void TestSurfaces() {
+  for (ControlSurface& s : surfaces) {
+    s.test();
+    Serial.println("Testing surface");
+    delay(500);
   }
 }
