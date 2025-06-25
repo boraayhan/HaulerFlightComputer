@@ -77,6 +77,10 @@ struct ControlSurface {
     //Serial.println(target);
     servo.write(zero + target);
   }
+
+  void trim(float angle) {
+    zero+=dir*angle;
+  }
 };
 
 // VARIABLES AND OBJECTS
