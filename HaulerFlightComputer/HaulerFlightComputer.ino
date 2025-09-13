@@ -13,8 +13,8 @@
 // CONSTANTS
 const float FLAPERON_RATIO_CONSTANT = 0;  // 0 for flaperon mode off, 0.3 recommended
 
-const float AILERON_POS_MIN = -40;
-const float AILERON_POS_MAX = 40;
+const float AILERON_POS_MIN = -80;
+const float AILERON_POS_MAX = 80;
 
 const float FLAP_POS_MAX = 0;
 const float FLAP_POS_MIN = -40;
@@ -29,9 +29,8 @@ uint8_t address[][6] = { "1Node", "2Node" };
 enum ControlSurfaces {
   AILERON_LEFT = 0,
   AILERON_RIGHT,
-  FLAP_LEFT,
-  FLAP_RIGHT,
-  ELEVATOR,
+  ELEVATOR_LEFT,
+  ELEVATOR_RIGHT,
   _num
 };
 
@@ -55,19 +54,19 @@ struct ControlSurface {
   }
 
   void test() {
-    for (float i = min; i <= max; i += 1.0) {
+    for (float i = 0; i < max; i++) {
       move(i);
-      delay(20);
+      delay(5);
     }
 
-    for (float i = max; i >= min; i -= 1.0) {
+    for (float i = max; i > min; i--) {
       move(i);
-      delay(20);
+      delay(5);
     }
 
     for (float i = min; i <= 0; i += 1.0) {
       move(i);
-      delay(20);
+      delay(5);
     }
     move(0);
   }
@@ -90,11 +89,10 @@ Servo propeller;  // This is NOT a servo lmao
 bool active = true;
 
 ControlSurface surfaces[_num] = {
-  { Servo(), 10, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },  // AILERON_LEFT
-  { Servo(), 11, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },   // AILERON_RIGHT
-  { Servo(), 12, 80, FLAP_POS_MIN, FLAP_POS_MAX, -1 },        // FLAP_LEFT
-  { Servo(), 13, 90, FLAP_POS_MIN, FLAP_POS_MAX, 1 },         // FLAP_RIGHT
-  { Servo(), 9, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_LEFT
+  //{ Servo(), 9, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },  // AILERON_LEFT
+  { Servo(), 10, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },   // AILERON_RIGHT
+  //{ Servo(), 11, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_LEFT
+  //{ Servo(), 12, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_RIGHT
 };
 
 // FUNCTIONS
@@ -105,14 +103,17 @@ void setup() {
 }
 
 void loop() {
-  ReceiveRadio();
-  if (!active) {
-    SetThrottle(0);
+  for (ControlSurface& s : surfaces) {
+    s.test();
   }
+  //ReceiveRadio();
+  //if (!active) {
+  //  SetThrottle(0);
+  //}
 }
 void InitializeSystems() {
-  SetupRadio();
-  propeller.attach(PROPELLER_PIN);
+  //SetupRadio();
+  //propeller.attach(PROPELLER_PIN);
   for (ControlSurface& s : surfaces) {
     s.init();
   }
@@ -141,11 +142,10 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
       MoveSurfacesWithJoystick(payload.p1, payload.p2);
     }
 
-    if (payload.id == 2) {  // delta flap
+    /*if (payload.id == 2) {  // delta flap
       flap += payload.p1 * abs(FLAP_POS_MIN) / 3;
       flap = constrain(flap, FLAP_POS_MIN, FLAP_POS_MAX);
-      MoveFlaps();
-    }
+    }*/
 
     if (payload.id == 3) {  // Throttle
       float speed = payload.p1 * 170;
@@ -174,12 +174,8 @@ void MoveSurfacesWithJoystick(float jX, float jY) {  // Translates payload data 
 
   surfaces[AILERON_LEFT].move(pAileron);
   surfaces[AILERON_RIGHT].move(pAileron);
-  surfaces[ELEVATOR].move(pElevator);
-}
-
-void MoveFlaps() {  // Updates flap level
-  surfaces[FLAP_LEFT].move(flap);
-  surfaces[FLAP_RIGHT].move(flap);
+  surfaces[ELEVATOR_LEFT].move(pElevator);
+  surfaces[ELEVATOR_RIGHT].move(pElevator);
 }
 
 void SetThrottle(float speed) {
