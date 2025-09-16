@@ -27,7 +27,7 @@ void setup() {
   }
 
   radio.setPayloadSize(sizeof(Payload));
-  radio.setPALevel(RF24_PA_LOW);
+  radio.setPALevel(RF24_PA_HIGH);
   radio.openWritingPipe(addresses[0]);
   radio.stopListening();
   Serial.println(F("Transmitter Initialized!"));

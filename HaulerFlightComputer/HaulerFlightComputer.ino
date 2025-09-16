@@ -89,10 +89,10 @@ Servo propeller;  // This is NOT a servo lmao
 bool active = true;
 
 ControlSurface surfaces[_num] = {
-  //{ Servo(), 9, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },  // AILERON_LEFT
-  { Servo(), 10, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },   // AILERON_RIGHT
-  //{ Servo(), 11, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_LEFT
-  //{ Servo(), 12, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_RIGHT
+  //{ Servo(), 2, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },  // AILERON_LEFT
+  { Servo(), 3, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },   // AILERON_RIGHT
+  //{ Servo(), 4, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_LEFT
+  //{ Servo(), 5, 90, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_RIGHT
 };
 
 // FUNCTIONS
@@ -103,16 +103,13 @@ void setup() {
 }
 
 void loop() {
-  for (ControlSurface& s : surfaces) {
-    s.test();
-  }
-  //ReceiveRadio();
+  ReceiveRadio();
   //if (!active) {
   //  SetThrottle(0);
   //}
 }
 void InitializeSystems() {
-  //SetupRadio();
+  SetupRadio();
   //propeller.attach(PROPELLER_PIN);
   for (ControlSurface& s : surfaces) {
     s.init();
@@ -128,6 +125,7 @@ void SetupRadio() {  // Initializes radio
   radio.setPayloadSize(sizeof(Payload));
   radio.openReadingPipe(1, address[0]);
   radio.startListening();
+  delay(1000); // Allow for radio to stabilize
 }
 
 void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordingly
