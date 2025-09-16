@@ -60,13 +60,6 @@ try:
         if b14 and not pb14:
             transmit(4, 0, 0)
         
-        #Engine activation
-        # if b12 and not pb12:
-            # transmit(5, 0, 0)
-        # Max throttle for init config  
-        if b13 and not pb13:
-            transmit(6, 0, 0)
-        
         pb2 = b2
         pb3 = b3
         pb14 = b14
