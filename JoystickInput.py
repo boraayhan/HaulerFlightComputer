@@ -14,6 +14,9 @@ pb14 = False
 pb12= False
 pb13 = False
 
+last_roll = 0
+last_pitch = 0
+last_throttle = 0
 
 if pygame.joystick.get_count() == 0:
     print("No joystick found.")
@@ -29,19 +32,25 @@ joystick = pygame.joystick.Joystick(0)
 joystick.init()
 print("Joystick:", joystick.get_name())
 
+clock = pygame.time.Clock()
+
 try:
     while True:
-        pygame.event.pump()
+        pygame.event.get()
 
         # Joystick input
         roll = joystick.get_axis(0)
         pitch = joystick.get_axis(1)
-        transmit(0, roll, pitch)
+        if abs(roll - last_roll) > 0.1 or abs(pitch - last_pitch) > 0.1:
+            transmit(0, roll, pitch)
+            last_roll = roll
+            last_pitch = pitch
         
         # Throttle
         throttle = (-joystick.get_axis(2)+1)/2
-        transmit(3, throttle, 0)
-        
+        if abs(throttle - last_throttle) > 0.1:
+            transmit(3, throttle, 0)
+            last_throttle = throttle
         
         # Button Inputs
         b2 = joystick.get_button(2)
