@@ -3,7 +3,7 @@
 #include <Servo.h>
 #include <SPI.h>
 #include <stdint.h>
-#include "RF24.h"
+#include <RF24.h>
 
 #define RADIO_PIN_CE 7
 #define RADIO_PIN_CSN 8
@@ -105,14 +105,16 @@ void setup() {
   Serial.begin(115200);
   InitializeSystems();
   Serial.println("Initialized!");
+  delay(1000);
 }
 
 void loop() {
   ReceiveRadio();
 }
+
 void InitializeSystems() {
   SetupRadio();
-  // propeller.attach(PROPELLER_PIN);
+  propeller.attach(PROPELLER_PIN);
   for (ControlSurface &s : surfaces) {
     s.init();
   }
@@ -124,7 +126,7 @@ void SetupRadio() {  // Initializes radio
     while (1) {
     }
   }
-  radio.setPALevel(RF24_PA_LOW);  // FIXME: Experiment with different power levels. External power might be necessary
+  radio.setPALevel(RF24_PA_LOW);
   radio.setPayloadSize(sizeof(Payload));
   radio.openReadingPipe(1, address[0]);
   radio.startListening();
@@ -138,7 +140,6 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
     float p1 = payload.p1;
     float p2 = payload.p2;
 
-    // For some reason, switch() case: didn't work for id's higher than 3? I spent 20 mins trying to bugfix it to no avail. I am so confused, but this works (I guess). I'm starting to suspect that it's emi caused by solar flares or something funky like that
     if (payload.id == 0) {  // Joystick input
       MoveSurfacesWithJoystick(payload.p1, payload.p2);
       if (payload.p1 > 0.5)  // Disengage rolling autopilot
@@ -176,7 +177,8 @@ void SetThrottle(float speed) {
 void TestSurfaces() {
   for (ControlSurface &s : surfaces) {
     s.test();
-    Serial.println("Testing surface");
+    Serial.println(F("Testing surface"));
     delay(500);
   }
+  Serial.println(F("Testing complete!"));
 }
