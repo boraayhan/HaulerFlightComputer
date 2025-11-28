@@ -12,10 +12,10 @@
 #define PROPELLER_PIN 3
 
 // CONSTANTS
-const float FLAPERON_RATIO_CONSTANT = 0.2; // 0 for flaperon mode off, 0.3 recommended
+const float FLAPERON_RATIO_CONSTANT = 0.0; // 0 for flaperon mode off, 0.3 recommended
 
-const float AILERON_POS_MIN = -80;
-const float AILERON_POS_MAX = 80;
+const float AILERON_POS_MIN = -90;
+const float AILERON_POS_MAX = 90;
 
 const float ELEVATOR_POS_MIN = -90;
 const float ELEVATOR_POS_MAX = 90;
@@ -202,31 +202,46 @@ void ReceiveRadio()
   if (radio.available(&pipe))
   {
     radio.read(&payload, sizeof(Payload)); // Receive the payload
+    int id = payload.id;
     float p1 = payload.p1;
     float p2 = payload.p2;
 
-    if (payload.id == 0)
+    if (id == 0)
     { // Joystick input
-      MoveSurfaces(payload.p1, payload.p2);
-      if (abs(payload.p1) > AUTOPILOT_DISENGAGE_THRESHOLD || abs(payload.p2) > AUTOPILOT_DISENGAGE_THRESHOLD)
-      { // Disengage rolling autopilot
+      MoveSurfaces(p1, p2);
+      if (abs(p1) > AUTOPILOT_DISENGAGE_THRESHOLD || abs(p2) > AUTOPILOT_DISENGAGE_THRESHOLD)
+      { // Disengage autopilot
         DisengageAutopilot();
       }
     }
 
-    if (payload.id == 3)
+    if (id == 1)
+    {              // Trim
+      if (p1 == 0) // Aileron trim
+      {
+        surfaces[AILERON_LEFT].trim(p2);
+        surfaces[AILERON_RIGHT].trim(p2);
+      }
+      if (p1 == 1) // Elevator trim
+      {
+        surfaces[ELEVATOR_LEFT].trim(p2);
+        surfaces[ELEVATOR_RIGHT].trim(p2);
+      }
+    }
+
+    if (id == 3)
     { // Throttle
-      if (payload.p1 < 0.2)
+      if (p1 < 0.2)
       {
         throttle = 0;
       }
       else
       {
-        throttle = payload.p1;
+        throttle = p1;
       }
     }
 
-    if (payload.id == 4)
+    if (id == 4)
     { // test surfaces
       TestSurfaces();
     }
@@ -234,7 +249,7 @@ void ReceiveRadio()
 }
 
 void MoveSurfaces(float jR, float jP)
-{                                                                // Translates a value (-1 to 1) to aileron and elevator motion
+{                                                                // Translates a value (-1.00 to 1.00) to aileron and elevator motion
   float pAileron = jR * (AILERON_POS_MAX - AILERON_POS_MIN) / 2; // TODO: Verify whether div by 2 is correct
   float pElevator = jP * (ELEVATOR_POS_MAX - ELEVATOR_POS_MIN) / 2;
 
