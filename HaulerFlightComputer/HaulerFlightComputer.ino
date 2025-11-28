@@ -8,7 +8,7 @@
 #define RADIO_PIN_CE 7
 #define RADIO_PIN_CSN 8
 
-#define PROPELLER_PIN 49
+#define PROPELLER_PIN 3
 
 // CONSTANTS
 const float FLAPERON_RATIO_CONSTANT = 0;  // 0 for flaperon mode off, 0.3 recommended
@@ -20,6 +20,7 @@ const float ELEVATOR_POS_MIN = -90;
 const float ELEVATOR_POS_MAX = 90;
 
 float flap = 0;
+float throttle = 0;
 
 uint8_t address[][6] = { "1Node", "2Node" };
 
@@ -94,10 +95,10 @@ Servo propeller;  // This is NOT a servo lmao
 bool autopilot[3] = { false, false, false };
 
 ControlSurface surfaces[num_surface] = {
-  { Servo(), 2, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1},    // AILERON_LEFT
-  { Servo(), 3, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },    // AILERON_RIGHT
+  { Servo(), 2, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },     // AILERON_LEFT
+  { Servo(), 3, 90, AILERON_POS_MIN, AILERON_POS_MAX, -1 },     // AILERON_RIGHT
   { Servo(), 4, 105, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, -1 },  // ELEVATOR_LEFT
-  { Servo(), 5, 100, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, 1 },  // ELEVATOR_RIGHT
+  { Servo(), 5, 100, ELEVATOR_POS_MIN, ELEVATOR_POS_MAX, 1 },   // ELEVATOR_RIGHT
 };
 
 // FUNCTIONS
@@ -110,11 +111,13 @@ void setup() {
 
 void loop() {
   ReceiveRadio();
+  SetThrottle();
 }
 
 void InitializeSystems() {
-  SetupRadio();
   propeller.attach(PROPELLER_PIN);
+  propeller.writeMicroseconds(1000);
+  SetupRadio();
   for (ControlSurface &s : surfaces) {
     s.init();
   }
@@ -148,10 +151,12 @@ void ReceiveRadio() {  // Receives radio payload {id, p1, p2}, processes accordi
         autopilot[y] = false;
     }
 
-    if (payload.id == 3) {             // Throttle
-      float speed = payload.p1 * 170;  // FIXME: Fails often. Make it such that throttle never stalls at max
-      SetThrottle(speed);
-      // Serial.println(speed);
+    if (payload.id == 3) {  // Throttle
+      if (payload.p1 < 0.2) {
+        throttle = 0;
+      } else {
+        throttle = payload.p1;
+      }
     }
 
     if (payload.id == 4) {  // test surfaces
@@ -170,8 +175,10 @@ void MoveSurfacesWithJoystick(float jX, float jY) {  // Translates payload data 
   surfaces[ELEVATOR_RIGHT].move(pElevator);
 }
 
-void SetThrottle(float speed) {
-  propeller.write(speed);
+void SetThrottle() {
+  float speed = constrain(1000 + 1000 * throttle, 1000, 2000);
+  propeller.writeMicroseconds(speed);
+  Serial.println(speed);
 }
 
 void TestSurfaces() {
