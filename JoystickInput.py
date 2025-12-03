@@ -8,34 +8,30 @@ ser = serial.Serial("/dev/ttyACM0", 115200, timeout=1)
 pygame.init()
 pygame.joystick.init()
 
-# Maybe make this not as janky :sob:
-pb2 = False
-pb3 = False
-pREPLACE1 = False
-pREPLACE2 = False
-pb14 = False
-pb12 = False
-pb13 = False
+TRIM_REPEAT_INTERVAL = 0.03 # sec
 
-buttons = [
-    # int button number, bool current state, transmit struct [int id, float p1, float p2] (use [] for no function)
+buttons = [ # int button number, bool previous state, transmit struct [int id, float p1, float p2] (use [] for no function)
+    
     [2, False, [2, 1, 0]],  # Increment flap level
     [3, False, [2, 1, 0]],  # Decrement flap level
     
-    [REPLACEME, False, [1,0,-1]],  # Increment aileron trim (1 servo deg)
-    [REPLACEME, False, [1,0,1]],  # Decrement aileron trim (1 servo deg)
-    [REPLACEME, False, [1,1,-1]],  # Increment elevator trim (1 servo deg)
-    [REPLACEME, False, [1,1,1]],  # Decrement elevator trim (1 servo deg)
-    
     [12, False, []],
     [13, False, []],
-    
-    [14, False, [4, 0, 0]],  # Test surfaces
+
+    [1, False, [4, 0, 0]],  # Reset trim
 ]
+
+trim_map = {
+    (0, 1):  [1, 1,  1],   # Hat up: Increment elevator trim (1 servo deg)
+    (0,-1):  [1, 1, -1],   # Hat down: Decrement elevator trim (1 servo deg)
+    (1, 0):  [1, 0,  1],   # Hat right: Decrement aileron trim (1 servo deg)
+    (-1,0):  [1, 0, -1],   # Hat left: Increment aileron trim (1 servo deg)
+}
 
 pRoll = 0
 pPitch = 0
 pThrottle = 0
+tTrim = 0
 
 if pygame.joystick.get_count() == 0:
     print("ERROR: No joystick found.")
@@ -68,7 +64,7 @@ try:
 
         # Throttle
         throttle = (-joystick.get_axis(2) + 1) / 2
-        if abs(throttle - pThrottle) > 0.1:
+        if abs(throttle - pThrottle) > 0.03:
             transmit(3, throttle, 0)
             pThrottle = throttle
 
@@ -76,8 +72,18 @@ try:
         for btn in buttons:  # !! Verify !!
             state = joystick.get_button(btn[0])
             if state and not btn[1]:
+                print("A")
                 transmit(btn[2][0], btn[2][1], btn[2][2])
             btn[1] = state
 
+        hat_raw = joystick.get_hat(0)
+        hat = (int(hat_raw[0]), int(hat_raw[1]))
+
+        if hat in trim_map and hat != (0, 0):
+            if time.time() - tTrim >= TRIM_REPEAT_INTERVAL:
+                pkg = trim_map[hat]  # [id, p1, p2]
+                transmit(pkg[0], pkg[1], pkg[2])
+                tTrim = time.time()
+                
 except Exception as err:
     print(f"Exiting program: {err}")
